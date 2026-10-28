@@ -171,7 +171,6 @@ h2{font-size:18px;margin:0 0 10px}
   <div class="card" style="margin-top:14px">
     <div class="tg"><span>🔊 અવાજ</span><label class="sw"><input type="checkbox" id="tSnd" checked><span></span></label></div>
     <div class="tg"><span>📳 વાઇબ્રેશન</span><label class="sw"><input type="checkbox" id="tVib" checked><span></span></label></div>
-    <div class="tg"><span>🔀 પ્રશ્નો મિક્સ કરો</span><label class="sw"><input type="checkbox" id="tMix" checked><span></span></label></div>
   </div>
   <div class="lnk">
     <button id="expBtn">⬇ બેકઅપ સેવ કરો</button>
@@ -726,16 +725,18 @@ if(mode==="wrong")list=list.filter(x=>S.s[x.id]===0);
 if(mode==="new")list=list.filter(x=>S.s[x.id]===undefined);
 list=list.map(x=>x.id);if(!list.length){toast("આ વિભાગમાં કોઈ પ્રશ્ન બાકી નથી");return}
 if(validRun(S.run)&&S.run.picked.some(x=>x!==null)){if(!confirm("અધૂરી ટેસ્ટ બંધ થશે. નવી શરૂ કરવી છે?"))return;S.pt.push(testRecord(S.run,"અધૂરી છોડી"))}
-if($("tMix").checked)for(let i=list.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[list[i],list[j]]=[list[j],list[i]]}
-R={mode,key,list,pos:0,score:0,fixed:0,picked:new Array(list.length).fill(null),before:totalOk(),t0:Date.now()};
+shuf(list);
+R={mode,key,list,perm:list.map(()=>shuf([0,1,2,3])),pos:0,score:0,fixed:0,picked:new Array(list.length).fill(null),before:totalOk(),t0:Date.now()};
 S.run=R;touchRun();S.st++;S.acc.st++;save();sfx("tap");buzz(20);show("quiz");render();syncNow()}
 function resume(auto){R=S.run;if(!R.t0)R.t0=Date.now();if(R.picked[R.pos]!==null&&R.pos<R.list.length-1)R.pos++;touchRun();save();if(!auto)sfx("tap");show("quiz");render();
 if(auto)toast(`ટેસ્ટ પ્રશ્ન ${R.pos+1}/${R.list.length} થી આગળ ચાલુ ▶`);syncSoon(500)}
 
+function shuf(a){for(let i=a.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[a[i],a[j]]=[a[j],a[i]]}return a}
+function permOf(k){if(!Array.isArray(R.perm)||R.perm.length!==R.list.length)R.perm=R.list.map(()=>[0,1,2,3]);return R.perm[k]}
 function render(){const q=Q[R.list[R.pos]];$("qNo").textContent=R.pos+1;$("qTot").textContent=R.list.length;$("qScore").textContent=R.score;$("qTotal").textContent=totalOk();
 $("qMode").classList.toggle("hidden",R.mode!=="wrong");
 $("qBar").style.width=(R.pos/R.list.length*100)+"%";$("qUnit").textContent="યુનિટ "+q.u+" · "+UNITS[q.u];$("qText").textContent=q.q;
-const box=$("qOpts");box.innerHTML="";q.o.forEach((t,i)=>{const b=document.createElement("button");b.className="opt";b.innerHTML=`<span class="l">${L[i]}</span><span></span>`;b.lastChild.textContent=t;b.onclick=()=>pick(i);box.appendChild(b)});
+const box=$("qOpts");box.innerHTML="";permOf(R.pos).forEach((oi,di)=>{const b=document.createElement("button");b.className="opt";b.innerHTML=`<span class="l">${L[di]}</span><span></span>`;b.lastChild.textContent=q.o[oi];b.onclick=()=>pick(oi);box.appendChild(b)});
 $("qExp").className="exp hidden";$("nextBtn").classList.add("hidden");$("qCard").classList.remove("shake","pop");
 if(R.picked[R.pos]!==null)paint(R.picked[R.pos],false)}
 
@@ -747,11 +748,11 @@ const card=$("qCard");void card.offsetWidth;
 if(ok){sfx(was===0?"fix":"ok");buzz(was===0?[40,40,90]:60);card.classList.add("pop")}else{sfx("bad");buzz([120,60,120]);card.classList.add("shake")}
 paint(i,ok&&was===0)}
 
-function paint(i,fixed){const q=Q[R.list[R.pos]],btns=$("qOpts").children,ok=i===q.a;
-[...btns].forEach(b=>b.disabled=true);btns[q.a].classList.add("ok");if(!ok)btns[i].classList.add("bad");
+function paint(i,fixed){const q=Q[R.list[R.pos]],btns=$("qOpts").children,ok=i===q.a,pm=permOf(R.pos);
+[...btns].forEach(b=>b.disabled=true);btns[pm.indexOf(q.a)].classList.add("ok");if(!ok)btns[pm.indexOf(i)].classList.add("bad");
 $("qScore").textContent=R.score;$("qTotal").textContent=totalOk();
 const ex=$("qExp");ex.className="exp"+(ok?"":" bad");
-ex.innerHTML=`<b>${ok?(fixed?"✔ સુધારી લીધો! કુલ સ્કોર +1":"✔ સાચો જવાબ!"):"✘ ખોટો જવાબ – સાચો: "+L[q.a]+". "+esc(q.o[q.a])}</b>${esc(q.e)}`;
+ex.innerHTML=`<b>${ok?(fixed?"✔ સુધારી લીધો! કુલ સ્કોર +1":"✔ સાચો જવાબ!"):"✘ ખોટો જવાબ – સાચો: "+L[pm.indexOf(q.a)]+". "+esc(q.o[q.a])}</b>${esc(q.e)}`;
 const nb=$("nextBtn");nb.textContent=R.pos===R.list.length-1?"પરિણામ જુઓ 🏁":"આગળ ➜";nb.classList.remove("hidden");
 setTimeout(()=>nb.scrollIntoView({behavior:"smooth",block:"nearest"}),80)}
 function esc(s){return String(s).replace(/[&<>]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]))}
@@ -781,8 +782,8 @@ function shareText(){const t=lastRes;if(!t)return"";const dt=new Date(t.time);
 return `ITI મીકેનીક ડીઝલ – MCQ પરિણામ\nનામ: ${USER.name}\nમોબાઈલ: ${USER.mob}\nટેસ્ટ: ${t.mode} – ${t.unit}\nસ્કોર: ${t.ok}/${t.att} (${t.pct}%)\nકુલ સ્કોર: ${t.after}/300\nતારીખ: ${dt.toLocaleDateString("en-GB")} ${dt.toLocaleTimeString("en-IN",{hour:"2-digit",minute:"2-digit"})}`}
 function openLink(u){const a=document.createElement("a");a.href=u;a.target="_blank";a.rel="noopener";document.body.appendChild(a);a.click();a.remove()}
 
-function review(){let h="";R.list.forEach((id,k)=>{const p=R.picked[k],q=Q[id];if(p===null||p===q.a)return;
-h+=`<div class="rv"><div><b>${esc(q.q)}</b></div><div class="a y">તમારો જવાબ: ${L[p]}. ${esc(q.o[p])}</div><div class="a c">સાચો જવાબ: ${L[q.a]}. ${esc(q.o[q.a])}</div><div class="e">${esc(q.e)}</div></div>`});
+function review(){let h="";R.list.forEach((id,k)=>{const p=R.picked[k],q=Q[id];if(p===null||p===q.a)return;const pm=permOf(k);
+h+=`<div class="rv"><div><b>${esc(q.q)}</b></div><div class="a y">તમારો જવાબ: ${L[pm.indexOf(p)]}. ${esc(q.o[p])}</div><div class="a c">સાચો જવાબ: ${L[pm.indexOf(q.a)]}. ${esc(q.o[q.a])}</div><div class="e">${esc(q.e)}</div></div>`});
 $("rvList").innerHTML=h||"બધા જવાબ સાચા છે! 🎉";show("review")}
 
 // ---------- backup ----------
@@ -792,10 +793,10 @@ function importData(f){const r=new FileReader();r.onload=()=>{try{const o=JSON.p
  if(o.user&&o.user.email&&o.user.email!==USER.email)throw 1;const d=o.data,t=d.t||{};let n=0;
  for(const k in d.s){const tt=+t[k]||1;if(tt>(S.t[k]||0)&&(d.s[k]===0||d.s[k]===1)){S.s[k]=d.s[k];S.t[k]=tt;n++}}
  save();home();syncNow();toast(`બેકઅપમાંથી ${n} જવાબ ઉમેરાયા ✔`)}catch(e){toast(e===1?"આ બેકઅપ બીજા વિદ્યાર્થીનો છે":"ખોટી બેકઅપ ફાઈલ")}};r.readAsText(f)}
-function applySet(){["tSnd","tVib","tMix"].forEach(id=>{$(id).checked=S.set?S.set[id]!==0:true})}
+function applySet(){["tSnd","tVib"].forEach(id=>{$(id).checked=S.set?S.set[id]!==0:true})}
 
 // ---------- init ----------
-["tSnd","tVib","tMix"].forEach(id=>$(id).onchange=()=>{S.set=S.set||{};S.set[id]=$(id).checked?1:0;save()});
+["tSnd","tVib"].forEach(id=>$(id).onchange=()=>{S.set=S.set||{};S.set[id]=$(id).checked?1:0;save()});
 $("unitSel").onchange=renderHome;
 $("loginBtn").onclick=doLogin;$("gBack").onclick=()=>{PEND=null;try{google.accounts.id.disableAutoSelect()}catch(e){}showLogin()};
 ["inMob","inMail"].forEach(i=>$(i).onkeydown=e=>{if(e.key==="Enter")doLogin()});
